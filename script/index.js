@@ -1,4 +1,4 @@
-
+let frames = 0;
 const sound_Hit = new Audio();
 sound_Hit.src = "../sounds/hit.wav";
 
@@ -24,7 +24,7 @@ function createFlappyBird() {
       flappyBird.velocity = -5;
     },
     update() {
-      if(collide(flappyBird, ground)) {
+      if(collide(flappyBird, globals.ground)) {
         
         sound_Hit.play();
 
@@ -38,10 +38,31 @@ function createFlappyBird() {
       flappyBird.velocity = flappyBird.velocity + flappyBird.gravity;
       flappyBird.y += flappyBird.velocity;
     },
+    moviments: [
+      { spriteX: 0, spriteY: 0 }, // wing up
+      { spriteX: 0, spriteY: 26 }, // wing on middle
+      { spriteX: 0, spriteY: 52 } // wing down
+    ],
+    currentFrame: 0,
+    updateCurrentFrame () {
+      const framesInteval = 10;
+      const intervalHasPassed = (frames % framesInteval) == 0;
+
+      if (intervalHasPassed){
+        const incrementBase = 1;
+        const increment = incrementBase + flappyBird.currentFrame;
+        const baseLoop = flappyBird.moviments.length;
+  
+        flappyBird.currentFrame = increment % baseLoop;  
+      }         
+    },
     drawBird() {
+      this.updateCurrentFrame();
+      const { spriteX, spriteY } = this.moviments[flappyBird.currentFrame];
+
       context.drawImage(
         sprites, 
-        flappyBird.spriteX, flappyBird.spriteY, 
+        spriteX, spriteY, 
         flappyBird.width, flappyBird.height, 
         flappyBird.x, flappyBird.y,
         flappyBird.width, flappyBird.height
@@ -50,6 +71,40 @@ function createFlappyBird() {
   };
 
   return flappyBird;
+}
+
+function createGround(){
+  // ground
+  const ground = {
+    spriteX: 0, spriteY: 610, //image (sprite) initial coordinates
+    width: 224, height: 112, //split and image size
+    x: 0, y: canvas.height - 112,  //image splitted coordinates
+    update() {
+      const repeatGroundAt = ground.width / 2; 
+      const moviment = ground.x - 1;
+
+      ground.x = moviment % repeatGroundAt;
+    },
+    drawGround() {
+      context.drawImage(
+        sprites, 
+        ground.spriteX, ground.spriteY, 
+        ground.width, ground.height, 
+        ground.x, ground.y,
+        ground.width, ground.height
+      );
+
+      context.drawImage(
+        sprites, 
+        ground.spriteX, ground.spriteY, 
+        ground.width, ground.height, 
+        (ground.x + ground.width), ground.y,
+        ground.width, ground.height
+      );
+    },
+  };
+
+  return ground;
 }
 
 //background
@@ -78,31 +133,6 @@ const gameBackground = {
     );
   }
 };
-
-// ground
-const ground = {
-  spriteX: 0, spriteY: 610, //image (sprite) initial coordinates
-  width: 224, height: 112, //split and image size
-  x: 0, y: canvas.height - 112,  //image splitted coordinates
-  drawGround() {
-    context.drawImage(
-      sprites, 
-      ground.spriteX, ground.spriteY, 
-      ground.width, ground.height, 
-      ground.x, ground.y,
-      ground.width, ground.height
-    );
-
-    context.drawImage(
-      sprites, 
-      ground.spriteX, ground.spriteY, 
-      ground.width, ground.height, 
-      (ground.x + ground.width), ground.y,
-      ground.width, ground.height
-    );
-  },
-};
-
 
 function collide(bird, ground) {
   const flappyBirdY = bird.y + bird.height;
@@ -146,15 +176,16 @@ const screens = {
   init: {
     initialize() { 
       globals.flappyBird = createFlappyBird()
+      globals.ground = createGround();
     },
     draw() {
       gameBackground.drawBackground();
-      ground.drawGround();
+      globals.ground.drawGround();
       globals.flappyBird.drawBird();
       getReadyScreen.drawScreen();
     },
     update() {
-
+      globals.ground.update();
     },
     click() {
       changeToScreen(screens.game);
@@ -165,10 +196,13 @@ const screens = {
 screens.game = {
   draw() {
     gameBackground.drawBackground();
-    ground.drawGround();
+    globals.ground.drawGround();
     globals.flappyBird.drawBird();
   },
-  update: () => globals.flappyBird.update(),
+  update: () => {
+    globals.flappyBird.update();
+    globals.ground.update();
+  },
   click: () => globals.flappyBird.jump()
 };
 
@@ -176,6 +210,7 @@ function loop(){
   activeScreen.draw();
   activeScreen.update();
   
+  frames += 1;
   requestAnimationFrame(loop);
 }
 
