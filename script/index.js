@@ -1,10 +1,10 @@
-
 const sprites = new Image();
 sprites.src = "../sprites/sprites.png";
 
 const canvas = document.querySelector('canvas');
 const context = canvas.getContext('2d');
 
+//background
 const gameBackground = {
   spriteX: 390, spriteY: 0, //image (sprite) initial coordinates
   width: 275, height: 204, //split and image size
@@ -29,8 +29,9 @@ const gameBackground = {
       gameBackground.width, gameBackground.height
     );
   }
-}
+};
 
+// ground
 const ground = {
   spriteX: 0, spriteY: 610, //image (sprite) initial coordinates
   width: 224, height: 112, //split and image size
@@ -52,8 +53,9 @@ const ground = {
       ground.width, ground.height
     );
   },
-}
+};
 
+// the bird
 const flappyBird = {
   spriteX: 0, spriteY: 0, //image (sprite) initial coordinates
   width: 33, height: 24, //split and image size
@@ -73,15 +75,72 @@ const flappyBird = {
       flappyBird.width, flappyBird.height
     );
   }
+};
+
+// Initial Screen
+const getReadyScreen = {
+  spriteX: 134, spriteY: 0, //image (sprite) initial coordinates
+  width: 174, height: 152, //split and image size
+  x: (canvas.width / 2) - 174 / 2, y: 50,  ////image splitted coordinates
+  gravity: 0.25,
+  velocity: 0,
+  drawScreen() {
+    context.drawImage(
+      sprites, 
+      getReadyScreen.spriteX, getReadyScreen.spriteY, 
+      getReadyScreen.width, getReadyScreen.height, 
+      getReadyScreen.x, getReadyScreen.y,
+      getReadyScreen.width, getReadyScreen.height
+    );
+  }
+};
+
+
+// Screens section
+let activeScreen = {};
+
+function changeToScreen(newScreen){
+  activeScreen = newScreen;
 }
 
+const screens = {
+  init: {
+    draw() {
+      gameBackground.drawBackground();
+      ground.drawGround();
+      flappyBird.drawBird();
+      getReadyScreen.drawScreen();
+    },
+    update() {
+
+    },
+    click() {
+      changeToScreen(screens.game);
+    }
+  }
+};
+
+screens.game = {
+  draw() {
+    gameBackground.drawBackground();
+    ground.drawGround();
+    flappyBird.drawBird();
+  },
+  update: () => flappyBird.update(),
+};
+
 function loop(){
-  flappyBird.update();
-  gameBackground.drawBackground();
-  ground.drawGround();
-  flappyBird.drawBird();
+  activeScreen.draw();
+  activeScreen.update();
   
   requestAnimationFrame(loop);
 }
 
+window.addEventListener('click', function() {
+  if(activeScreen.click) {
+    activeScreen.click();
+  }
+});
+
+changeToScreen(screens.init);
 loop();
