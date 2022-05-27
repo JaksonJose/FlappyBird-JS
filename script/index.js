@@ -1,8 +1,56 @@
+
+const sound_Hit = new Audio();
+sound_Hit.src = "../sounds/hit.wav";
+
 const sprites = new Image();
 sprites.src = "../sprites/sprites.png";
 
 const canvas = document.querySelector('canvas');
 const context = canvas.getContext('2d');
+
+/**
+ * Creates flappy bird
+ * @returns flappybird
+ */
+function createFlappyBird() {
+  // the bird
+  const flappyBird = {
+    spriteX: 0, spriteY: 0, //image (sprite) initial coordinates
+    width: 33, height: 24, //split and image size
+    x: 10, y: 50,  ////image splitted coordinates
+    gravity: 0.25,
+    velocity: 0,
+    jump: () => {
+      flappyBird.velocity = -5;
+    },
+    update() {
+      if(collide(flappyBird, ground)) {
+        
+        sound_Hit.play();
+
+        setTimeout(() => {
+          changeToScreen(screens.init);
+        }, 500);
+        
+        return;
+      }
+
+      flappyBird.velocity = flappyBird.velocity + flappyBird.gravity;
+      flappyBird.y += flappyBird.velocity;
+    },
+    drawBird() {
+      context.drawImage(
+        sprites, 
+        flappyBird.spriteX, flappyBird.spriteY, 
+        flappyBird.width, flappyBird.height, 
+        flappyBird.x, flappyBird.y,
+        flappyBird.width, flappyBird.height
+      );
+    }
+  };
+
+  return flappyBird;
+}
 
 //background
 const gameBackground = {
@@ -55,26 +103,13 @@ const ground = {
   },
 };
 
-// the bird
-const flappyBird = {
-  spriteX: 0, spriteY: 0, //image (sprite) initial coordinates
-  width: 33, height: 24, //split and image size
-  x: 10, y: 50,  ////image splitted coordinates
-  gravity: 0.25,
-  velocity: 0,
-  update() {
-    flappyBird.velocity = flappyBird.velocity + flappyBird.gravity;
-    flappyBird.y += flappyBird.velocity;
-  },
-  drawBird() {
-    context.drawImage(
-      sprites, 
-      flappyBird.spriteX, flappyBird.spriteY, 
-      flappyBird.width, flappyBird.height, 
-      flappyBird.x, flappyBird.y,
-      flappyBird.width, flappyBird.height
-    );
-  }
+
+function collide(bird, ground) {
+  const flappyBirdY = bird.y + bird.height;
+
+  if(flappyBirdY >= ground.y) return true;
+
+  return false;
 };
 
 // Initial Screen
@@ -95,20 +130,27 @@ const getReadyScreen = {
   }
 };
 
-
 // Screens section
+const globals = {};
 let activeScreen = {};
 
 function changeToScreen(newScreen){
   activeScreen = newScreen;
+
+  if(activeScreen.initialize) {
+      activeScreen.initialize();
+  }
 }
 
 const screens = {
   init: {
+    initialize() { 
+      globals.flappyBird = createFlappyBird()
+    },
     draw() {
       gameBackground.drawBackground();
       ground.drawGround();
-      flappyBird.drawBird();
+      globals.flappyBird.drawBird();
       getReadyScreen.drawScreen();
     },
     update() {
@@ -124,9 +166,10 @@ screens.game = {
   draw() {
     gameBackground.drawBackground();
     ground.drawGround();
-    flappyBird.drawBird();
+    globals.flappyBird.drawBird();
   },
-  update: () => flappyBird.update(),
+  update: () => globals.flappyBird.update(),
+  click: () => globals.flappyBird.jump()
 };
 
 function loop(){
@@ -140,6 +183,11 @@ window.addEventListener('click', function() {
   if(activeScreen.click) {
     activeScreen.click();
   }
+});
+
+window.addEventListener('keydown', ({code}) => {
+  if (code = 123 && activeScreen.click) 
+    activeScreen.click();
 });
 
 changeToScreen(screens.init);
