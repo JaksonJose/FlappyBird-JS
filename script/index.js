@@ -1,6 +1,12 @@
-let frames = 0;
+//Set UP
 const sound_Hit = new Audio();
 sound_Hit.src = "../sounds/hit.wav";
+
+const sound_Score = new Audio();
+sound_Score.src = "../sounds/ponto.wav";
+
+const sound_Jump = new Audio();
+sound_Jump.src = "../sounds/pulo.wav";
 
 const sprites = new Image();
 sprites.src = "../sprites/sprites.png";
@@ -8,10 +14,9 @@ sprites.src = "../sprites/sprites.png";
 const canvas = document.querySelector('canvas');
 const context = canvas.getContext('2d');
 
-/**
- * Creates flappy bird
- * @returns flappybird
- */
+let frames = 0;
+
+// Objects
 function createFlappyBird() {
   // the bird
   const flappyBird = {
@@ -20,7 +25,7 @@ function createFlappyBird() {
     x: 10, y: 50,  ////image splitted coordinates
     gravity: 0.25,
     velocity: 0,
-    jump: () => {
+    jump: () => {     
       flappyBird.velocity = -5;
     },
     update() {
@@ -28,9 +33,7 @@ function createFlappyBird() {
         
         sound_Hit.play();
 
-        setTimeout(() => {
-          changeToScreen(screens.init);
-        }, 500);
+        changeToScreen(screens.gameOver);
         
         return;
       }
@@ -183,7 +186,10 @@ function createPipeline () {
         pair.x -= 2;
 
         if (pipeline.collide(pair)) {
-          changeToScreen(screens.init);
+
+          sound_Hit.play();
+
+          changeToScreen(screens.gameOver);
         } 
 
         if (pair.x + pipeline.width < 0){
@@ -231,6 +237,30 @@ function collide(bird, ground) {
   return false;
 };
 
+
+function createScore() {
+  const score = {
+    scoreNum: 0,
+    drawScore() {
+      context.font = "35px VT323";
+      context.fillStyle = 'white';
+      context.fillText(`${this.scoreNum}`, canvas.width / 2, 90);
+    },
+    update() {
+      //console.log(globals.flappyBird.x)
+      globals.pipeline.pairs.forEach(pair => {
+        if(globals.flappyBird.x - globals.flappyBird.width + 1 == pair.x + 2) {
+          sound_Score.play();
+          
+          this.scoreNum += 1;
+        }         
+      });
+    }
+  }
+
+  return score;
+}
+
 // Initial Screen
 const getReadyScreen = {
   spriteX: 134, spriteY: 0, //image (sprite) initial coordinates
@@ -248,6 +278,25 @@ const getReadyScreen = {
     );
   }
 };
+
+// Initial Screen
+const gameOverScreen = {
+  spriteX: 134, spriteY: 153, //image (sprite) initial coordinates
+  width: 226, height: 200, //split and image size
+  x: (canvas.width / 2) - 226 / 2, y: 50,  ////image splitted coordinates
+  gravity: 0.25,
+  velocity: 0,
+  drawScreen() {
+    context.drawImage(
+      sprites, 
+      gameOverScreen.spriteX, gameOverScreen.spriteY, 
+      gameOverScreen.width, gameOverScreen.height, 
+      gameOverScreen.x, gameOverScreen.y,
+      gameOverScreen.width, gameOverScreen.height
+    );
+  }
+};
+
 
 // Screens section
 const globals = {};
@@ -285,19 +334,36 @@ const screens = {
 };
 
 screens.game = {
+  initialize() {
+    globals.score = createScore()
+  },
   draw() {
     gameBackground.drawBackground();
     globals.pipeline.drawPipeline();
     globals.ground.drawGround();
     globals.flappyBird.drawBird();
+    globals.score.drawScore();
   },
   update: () => {
     globals.pipeline.update();
     globals.ground.update();
-    globals.flappyBird.update();  
+    globals.flappyBird.update(); 
+    globals.score.update();
   },
   click: () => globals.flappyBird.jump()
 };
+
+screens.gameOver = {
+  draw() {
+    gameOverScreen.drawScreen();
+  },
+  update() {
+
+  },
+  click() {
+    changeToScreen(screens.init);
+  }
+}
 
 function loop(){
   activeScreen.draw();
@@ -309,12 +375,14 @@ function loop(){
 
 window.addEventListener('click', function() {
   if(activeScreen.click) {
+    sound_Jump.play(); 
     activeScreen.click();
   }
 });
 
 window.addEventListener('keydown', ({code}) => {
   if (code = 123 && activeScreen.click) 
+    sound_Jump.play();
     activeScreen.click();
 });
 
