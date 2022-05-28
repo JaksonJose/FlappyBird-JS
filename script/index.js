@@ -107,6 +107,95 @@ function createGround(){
   return ground;
 }
 
+function createPipeline () {
+  const pipeline = {
+    width: 52, height: 400,
+    down: {spriteX: 0, spriteY: 169},
+    up: { spriteX: 52, spriteY: 169},
+    space: 80,
+    drawPipeline() {
+
+      pipeline.pairs.forEach((pair) => {
+        const randomY = pair.y;
+        const spaceBetweenPipeline = 120;
+
+        const pipelineUpX = pair.x;
+        const pipelineUpY = randomY;
+
+        //Upper side pipeline
+        context.drawImage(
+          sprites,
+          pipeline.up.spriteX, pipeline.up.spriteY,
+          pipeline.width, pipeline.height,
+          pipelineUpX, pipelineUpY,
+          pipeline.width, pipeline.height
+        );
+
+        const pipelineDownX = pair.x;
+        const pipelineDownY = pipeline.height + spaceBetweenPipeline + randomY;
+        //Down side pipeline
+        context.drawImage(
+          sprites,
+          pipeline.down.spriteX, pipeline.down.spriteY,
+          pipeline.width, pipeline.height,
+          pipelineDownX, pipelineDownY,
+          pipeline.width, pipeline.height
+        );
+
+        pair.pipelineUp = { x: pipelineUpX, y: pipeline.height + pipelineUpY };
+        pair.pipelineDown = { x: pipelineDownX, y: pipelineDownY };
+      });
+    },
+    collide(pair) {
+      const flappyBirdHead = globals.flappyBird.y;
+      const flappyBirdFeet = globals.flappyBird.y + globals.flappyBird.height;
+
+      // Verify if Bird collided on front
+      if (globals.flappyBird.x >= pair.x) {
+        
+        //Verify if collided on the bird head    
+        if (flappyBirdHead <= pair.pipelineUp.y) {
+          return true;
+        }
+
+        //Verify if collided on the bird feet      
+        if (flappyBirdFeet >= pair.pipelineDown.y) {
+          return true;
+        }
+      }
+
+      return false;
+    },
+    pairs: [],
+    update() {
+      const framesHaspassed = (frames % 100) == 0;
+
+      if (framesHaspassed) {
+        const cood = {
+          x: canvas.width, 
+          y: -150 * (Math.random() + 1)
+        };
+
+        pipeline.pairs.push(cood);
+      }
+
+      pipeline.pairs.forEach((pair) => {
+        pair.x -= 2;
+
+        if (pipeline.collide(pair)) {
+          changeToScreen(screens.init);
+        } 
+
+        if (pair.x + pipeline.width < 0){
+          pipeline.pairs.shift();
+        }
+      });
+    }
+  };
+
+  return pipeline;
+}
+
 //background
 const gameBackground = {
   spriteX: 390, spriteY: 0, //image (sprite) initial coordinates
@@ -172,16 +261,18 @@ function changeToScreen(newScreen){
   }
 }
 
+// Manage the game screens
 const screens = {
   init: {
     initialize() { 
       globals.flappyBird = createFlappyBird()
       globals.ground = createGround();
+      globals.pipeline = createPipeline();
     },
     draw() {
       gameBackground.drawBackground();
       globals.ground.drawGround();
-      globals.flappyBird.drawBird();
+      globals.flappyBird.drawBird();   
       getReadyScreen.drawScreen();
     },
     update() {
@@ -196,12 +287,14 @@ const screens = {
 screens.game = {
   draw() {
     gameBackground.drawBackground();
+    globals.pipeline.drawPipeline();
     globals.ground.drawGround();
     globals.flappyBird.drawBird();
   },
   update: () => {
-    globals.flappyBird.update();
+    globals.pipeline.update();
     globals.ground.update();
+    globals.flappyBird.update();  
   },
   click: () => globals.flappyBird.jump()
 };
